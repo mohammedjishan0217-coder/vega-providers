@@ -1,11 +1,10 @@
 [
   {
-    "display_name": "EXAMPLE",
-    "value": "example",
+    "display_name": "Hanime",
+    "value": "hanime",
     "version": "1.0",
-    "icon": "",
+    "icon": "https://hanime.tv/favicon.ico",
     "type": "global",
-    "hasSettings": true,
     "disabled": false
   }
 ]

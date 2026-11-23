@@ -1,161 +1,129 @@
 "use strict";
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.getMeta = void 0;
+
 const DEFAULT_BASE_URL = "https://hanime.tv";
+
 async function resolveBaseUrl(providerContext) {
-  const custom = await providerContext.kvStore?.get("baseUrlOverride");
-  if (custom && custom.trim()) {
-    return custom.trim().replace(/\/+$/, "");
-  }
+  try {
+    const override = await providerContext.kvStore?.get("baseUrlOverride");
+    if (override && override.trim().length > 0) {
+      return override.trim().replace(/\/+$/, "");
+    }
+  } catch (e) {}
   return DEFAULT_BASE_URL;
 }
-function extractSlugFromLink(link) {
-  if (!link) return "";
+
+function extractSlug(link) {
   try {
-    const cleaned = link.split("?")[0].split("#")[0].replace(/\/+$/, "");
-    if (cleaned.includes("/videos/hentai/")) {
-      return cleaned.split("/videos/hentai/")[1].split("/")[0];
-    }
-    if (cleaned.includes("/hentai/")) {
-      return cleaned.split("/hentai/")[1].split("/")[0];
-    }
-    if (cleaned.includes("id=")) {
-      const match = link.match(/[?&]id=([^&#]+)/);
-      if (match) return decodeURIComponent(match[1]);
-    }
-    const parts = cleaned.split("/");
+    const clean = link.split("?")[0].split("#")[0].replace(/\/+$/, "");
+    const parts = clean.split("/");
     return parts[parts.length - 1] || "";
   } catch {
     return "";
   }
 }
-function stripHtml(raw) {
-  if (!raw) return "";
-  return raw.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
-}
-const getMeta = async function ({
-  link,
-  providerContext
-}) {
+
+exports.getMeta = async function ({ link, providerContext }) {
   try {
-    const {
-      axios,
-      cheerio,
-      commonHeaders
-    } = providerContext;
     const baseUrl = await resolveBaseUrl(providerContext);
-    const slug = extractSlugFromLink(link);
-    if (!slug) {
-      throw new Error(`Invalid hanime video link: ${link}`);
-    }
-    const apiUrl = `${baseUrl}/api/v8/video?id=${encodeURIComponent(slug)}`;
-    let videoData = null;
-    try {
-      const res = await axios.get(apiUrl, {
-        headers: {
-          ...commonHeaders,
-          Accept: "application/json, text/plain, */*",
-          Origin: baseUrl,
-          Referer: `${baseUrl}/videos/hentai/${slug}`,
-          "X-Signature-Version": "web2"
-        }
-      });
-      videoData = res?.data;
-    } catch {
-      videoData = null;
-    }
-    if (!videoData || !videoData.hentai_video) {
-      const pageUrl = `${baseUrl}/videos/hentai/${slug}`;
-      const pageRes = await axios.get(pageUrl, {
-        headers: {
-          ...commonHeaders,
-          Referer: `${baseUrl}/`
-        }
-      });
-      const html = typeof pageRes.data === "string" ? pageRes.data : "";
-      const nuxtMatch = html.match(/window\.__NUXT__\s*=\s*(\{[\s\S]*?\});?\s*<\/script>/);
-      if (nuxtMatch && nuxtMatch[1]) {
-        try {
-          const parsedNuxt = JSON.parse(nuxtMatch[1]);
-          videoData = parsedNuxt?.state?.data?.video || parsedNuxt?.data?.[0] || null;
-        } catch {
-          videoData = null;
-        }
+    const slug = extractSlug(link);
+    const targetUrl = link.startsWith("http")
+      ? link
+      : `${baseUrl}${link.startsWith("/") ? "" : "/"}${link}`;
+
+    const res = await providerContext.axios.get(targetUrl, {
+      headers: {
+        ...providerContext.commonHeaders,
+        Referer: baseUrl,
+      },
+    });
+
+    const $ = providerContext.cheerio.load(res.data);
+
+    let title =
+      $("meta[property='og:title']").attr("content") ||
+      $("h1").first().text().trim();
+    title = title
+      .replace(/\s*-\s*hanime\.tv\s*$/i, "")
+      .replace(/^Watch\s+/i, "")
+      .replace(/\s+Hentai Video.*$/i, "")
+      .trim();
+    if (!title) title = slug.replace(/-/g, " ");
+
+    const synopsis =
+      $("meta[property='og:description']").attr("content") ||
+      $("meta[name='description']").attr("content") ||
+      $(".description, .synopsis, p").first().text().trim() ||
+      "";
+
+    const image =
+      $("meta[property='og:image']").attr("content") ||
+      $("meta[name='twitter:image']").attr("content") ||
+      $("img[src*='covers'], img[src*='posters']").first().attr("src") ||
+      "";
+
+    const franchiseLinks = [];
+    const seenLinks = new Set();
+
+    $("a[href^='/videos/hentai/']").each((_, el) => {
+      const href = $(el).attr("href");
+      if (!href) return;
+      const fullHref = href.startsWith("http") ? href : `${baseUrl}${href}`;
+      if (seenLinks.has(fullHref)) return;
+      seenLinks.add(fullHref);
+
+      const epTitle =
+        $(el).find("h3, .title, span").first().text().trim() ||
+        $(el).attr("title") ||
+        "";
+      if (epTitle) {
+        franchiseLinks.push({
+          title: epTitle.replace(/^Watch\s+/i, "").trim(),
+          link: fullHref,
+          type: "series",
+        });
       }
-      if (!videoData || !videoData.hentai_video) {
-        const $ = cheerio.load(html);
-        const title = $("meta[property='og:title']").attr("content")?.trim() || $("h1").first().text().trim() || slug;
-        const synopsis = $("meta[property='og:description']").attr("content")?.trim() || $("meta[name='description']").attr("content")?.trim() || "No synopsis available.";
-        const image = $("meta[property='og:image']").attr("content")?.trim() || "";
-        return {
-          title,
-          synopsis,
-          image,
-          imdbId: "",
-          type: "movie",
-          linkList: [{
-            title: "Watch / Download",
-            quality: "1080",
-            directLinks: [{
-              title,
-              link: pageUrl,
-              type: "movie",
-              quality: "1080"
-            }]
-          }]
-        };
-      }
+    });
+
+    const isSeries = franchiseLinks.length > 1;
+    const linkList = [];
+
+    if (isSeries) {
+      linkList.push({
+        title: "Episodes / Franchise",
+        directLinks: franchiseLinks,
+      });
+    } else {
+      linkList.push({
+        title: "Full Video",
+        directLinks: [
+          {
+            title: title || "Play Video",
+            link: targetUrl,
+            type: "movie",
+          },
+        ],
+      });
     }
-    const hv = videoData.hentai_video || {};
-    const title = (hv.name || slug).trim();
-    const synopsis = stripHtml(hv.description) || "No synopsis available.";
-    const image = hv.cover_url || hv.poster_url || "";
-    const tags = Array.isArray(hv.hentai_tags) ? hv.hentai_tags.map(t => t?.text).filter(Boolean) : [];
-    const brand = hv.brand ? [String(hv.brand)] : [];
-    const likes = Number(hv.likes || 0);
-    const dislikes = Number(hv.dislikes || 0);
-    const rating = likes + dislikes > 0 ? `${(likes / (likes + dislikes) * 10).toFixed(1)}/10` : undefined;
-    const franchiseVideos = Array.isArray(videoData.hentai_franchise_hentai_videos) ? videoData.hentai_franchise_hentai_videos : [];
-    const directLinks = franchiseVideos.length > 0 ? franchiseVideos.map((ep, idx) => ({
-      title: (ep.name || `Episode ${idx + 1}`).trim(),
-      link: `${baseUrl}/videos/hentai/${ep.slug || slug}`,
-      type: franchiseVideos.length > 1 ? "series" : "movie",
-      quality: "1080"
-    })) : [{
-      title: title || "Episode 1",
-      link: `${baseUrl}/videos/hentai/${hv.slug || slug}`,
-      type: "movie",
-      quality: "1080"
-    }];
-    const franchiseTitle = videoData.hentai_franchise?.title?.trim() || (franchiseVideos.length > 1 ? `${title} (Franchise Episodes)` : "Watch / Download");
+
     return {
       title,
       synopsis,
       image,
-      imdbId: "",
-      type: franchiseVideos.length > 1 ? "series" : "movie",
-      tags,
-      cast: brand,
-      rating,
-      linkList: [{
-        title: franchiseTitle,
-        quality: "1080",
-        directLinks
-      }]
+      imdbId: slug || "hanime",
+      type: isSeries ? "series" : "movie",
+      linkList,
     };
-  } catch (error) {
-    console.error("hanime getMeta error:", error);
+  } catch (err) {
+    console.error("[hanime] getMeta error:", err.message || err);
     return {
-      title: "",
+      title: "Error Loading Metadata",
       synopsis: "",
       image: "",
-      imdbId: "",
+      imdbId: "hanime",
       type: "movie",
-      linkList: []
+      linkList: [],
     };
   }
 };
-exports.getMeta = getMeta;

@@ -7,39 +7,24 @@ export const getSettingsSchema = async function ({
 }): Promise<SettingsField[]> {
   return [
     {
-      key: "baseUrlOverride",
       type: "text",
-      label: "Custom Mirror Domain",
-      description: "Override default domain if hanime.tv is blocked in your region",
+      key: "baseUrlOverride",
+      label: "Custom Domain / Mirror URL",
       placeholder: "https://hanime.tv",
-      defaultValue: "",
+      description: "Override the canonical domain if blocked or changed.",
     },
     {
-      key: "preferredQuality",
       type: "select",
-      label: "Preferred Streaming Quality",
-      description: "Default streaming quality when multiple resolutions are available",
+      key: "preferredQuality",
+      label: "Preferred Stream Quality",
+      defaultValue: "1080p",
       options: [
-        { label: "Auto (Best Available)", value: "auto" },
-        { label: "1080p Full HD", value: "1080" },
-        { label: "720p HD", value: "720" },
-        { label: "480p SD", value: "480" },
-        { label: "360p LD", value: "360" },
+        { label: "1080p FHD", value: "1080p" },
+        { label: "720p HD", value: "720p" },
+        { label: "480p SD", value: "480p" },
+        { label: "360p SD", value: "360p" },
       ],
-      defaultValue: "auto",
-    },
-    {
-      key: "allowedResolutions",
-      type: "multiselect",
-      label: "Allowed Resolutions",
-      description: "Choose which video resolutions to show in playback sources",
-      options: [
-        { label: "1080p Full HD", value: "1080" },
-        { label: "720p HD", value: "720" },
-        { label: "480p SD", value: "480" },
-        { label: "360p LD", value: "360" },
-      ],
-      defaultValue: ["1080", "720", "480", "360"],
+      description: "Default quality resolution to prioritize when playing.",
     },
   ];
 };

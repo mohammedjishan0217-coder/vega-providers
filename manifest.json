@@ -3,7 +3,7 @@
     "display_name": "Hanime",
     "value": "hanime",
     "version": "1.0",
-    "icon": "https://hanime.tv/favicon.ico",
+    "icon": "https://hanime.tv/favicon.png",
     "type": "global",
     "disabled": false
   }

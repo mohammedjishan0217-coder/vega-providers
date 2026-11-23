@@ -11,6 +11,12 @@ async function resolveBaseUrl(providerContext) {
       return override.trim().replace(/\/+$/, "");
     }
   } catch (e) {}
+  if (providerContext.getBaseUrl) {
+    try {
+      const url = await providerContext.getBaseUrl();
+      if (url) return url.replace(/\/+$/, "");
+    } catch (e) {}
+  }
   return DEFAULT_BASE_URL;
 }
 
@@ -73,17 +79,32 @@ exports.getMeta = async function ({ link, providerContext }) {
       if (seenLinks.has(fullHref)) return;
       seenLinks.add(fullHref);
 
-      const epTitle =
+      const rawTitle =
         $(el).find("h3, .title, span").first().text().trim() ||
         $(el).attr("title") ||
         "";
-      if (epTitle) {
-        franchiseLinks.push({
-          title: epTitle.replace(/^Watch\s+/i, "").trim(),
-          link: fullHref,
-          type: "series",
-        });
+
+      let cleanTitle = rawTitle
+        .replace(/^Now Playing\s*/i, "")
+        .replace(/^\d+:\d+\s+/, "");
+      cleanTitle = cleanTitle.split(/\s+(?:[0-9\.]+[MK]?\s+views|·)/)[0].trim();
+      cleanTitle = cleanTitle.replace(/\s+[A-Z][a-zA-Z0-9_\-]+$/, "").trim();
+      if (!cleanTitle || cleanTitle.length < 2) {
+        cleanTitle = href.split("/").pop()?.replace(/-/g, " ") || "Episode";
       }
+
+      franchiseLinks.push({
+        title: cleanTitle,
+        link: fullHref,
+        type: "series",
+      });
+    });
+
+    franchiseLinks.sort((a, b) => {
+      const numA = parseInt((a.link.match(/(\d+)$/) || [])[1] || "0", 10);
+      const numB = parseInt((b.link.match(/(\d+)$/) || [])[1] || "0", 10);
+      if (numA && numB) return numA - numB;
+      return a.title.localeCompare(b.title);
     });
 
     const isSeries = franchiseLinks.length > 1;

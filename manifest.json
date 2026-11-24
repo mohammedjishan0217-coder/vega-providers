@@ -14,5 +14,69 @@
     "icon": "https://anifam.net/icon.png",
     "type": "global",
     "disabled": false
+  },
+  {
+    "display_name": "Pornhub",
+    "value": "pornhub",
+    "version": "1.0",
+    "icon": "https://www.pornhub.com/favicon.ico",
+    "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "XVideos",
+    "value": "xvideos",
+    "version": "1.0",
+    "icon": "https://static-cdn77.xvideos-cdn.com/v3/img/skins/default/ico/favicon.ico",
+    "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "XNXX",
+    "value": "xnxx",
+    "version": "1.0",
+    "icon": "https://assets-cdn77.xnxx-cdn.com/v3/img/skins/default/ico/favicon.ico",
+    "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "xHamster",
+    "value": "xhamster",
+    "version": "1.0",
+    "icon": "https://static.xhcdn.com/xh-desktop/icons/favicon.ico",
+    "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "SpankBang",
+    "value": "spankbang",
+    "version": "1.0",
+    "icon": "https://spankbang.com/favicon.ico",
+    "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "RedTube",
+    "value": "redtube",
+    "version": "1.0",
+    "icon": "https://www.redtube.com/favicon.ico",
+    "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "YouPorn",
+    "value": "youporn",
+    "version": "1.0",
+    "icon": "https://www.youporn.com/favicon.ico",
+    "type": "global",
+    "disabled": false
+  },
+  {
+    "display_name": "Tube8",
+    "value": "tube8",
+    "version": "1.0",
+    "icon": "https://www.tube8.com/favicon.ico",
+    "type": "global",
+    "disabled": false
   }
 ]

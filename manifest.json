@@ -8,14 +8,6 @@
     "disabled": false
   },
   {
-    "display_name": "AniFam",
-    "value": "anifam",
-    "version": "1.0",
-    "icon": "https://anifam.net/icon.png",
-    "type": "global",
-    "disabled": false
-  },
-  {
     "display_name": "Pornhub",
     "value": "pornhub",
     "version": "1.0",
